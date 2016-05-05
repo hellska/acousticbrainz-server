@@ -1,8 +1,11 @@
 import db
 import copy
+import json
+import sqlalchemy
 import jsonschema
 import unicodedata
 import re
+from db import exceptions
 
 # JSON schema is used for validation of submitted datasets. BASE_JSON_SCHEMA
 # defines basic structure of a dataset. JSON_SCHEMA_COMPLETE adds additional
@@ -71,6 +74,7 @@ def _slugify(string):
     string = unicodedata.normalize('NFKD', string).encode('ascii', 'ignore').decode('ascii')
     string = re.sub('[^\w\s-]', '', string).strip().lower()
     return re.sub('[-\s]+', '-', string)
+
 
 def create_from_dict(dictionary, author_id):
     """Creates a new dataset from a dictionary.
@@ -157,6 +161,7 @@ def get(id):
             row["classes"] = _get_classes(row["id"])
             return row
         else:
+            # TODO(roman): Probably better to raise an exception there instead of returning None.
             return None
 
 
@@ -210,3 +215,72 @@ def delete(id):
     """Delete dataset with a specified ID."""
     with db.engine.begin() as connection:
         connection.execute("DELETE FROM dataset WHERE id = %s", (str(id),))
+
+
+def create_snapshot(dataset_id):
+    """Creates a snapshot of current version of a dataset.
+
+    Snapshots are stored as JSON and have the following structure:
+    {
+        "name": "..",
+        "description": "..",
+        "classes": [
+            {
+                "name": "..",
+                "description: "..",
+                "recordings": ["..", ...]
+            },
+            ...
+        ]
+    }
+
+    Args:
+        dataset_id (string/uuid): ID of a dataset.
+
+    Returns:
+        ID (UUID) of a snapshot that was created.
+    """
+    dataset = get(dataset_id)
+    if not dataset:
+        raise exceptions.NoDataFoundException("Can't find dataset with a specified ID.")
+    snapshot = {
+        "name": dataset["name"],
+        "description": dataset["description"],
+        "classes": dataset["classes"],
+    }
+    with db.engine.connect() as connection:
+        result = connection.execute(sqlalchemy.text("""
+            INSERT INTO dataset_snapshot (id, dataset_id, data)
+                 VALUES (uuid_generate_v4(), :dataset_id, :data)
+              RETURNING id
+        """), {
+            "dataset_id": dataset_id,
+            "data": json.dumps(snapshot),
+        })
+        return result.fetchone()["id"]
+
+
+def get_snapshot(id):
+    """Get snapshot of a dataset.
+
+    Args:
+        id (string/uuid): ID of a snapshot.
+
+    Returns:
+        dictionary: {
+            "id": <ID of the snapshot>,
+            "dataset_id": <ID of the dataset that this snapshot is associated with>,
+            "created": <creation time>,
+            "data": <actual content of a snapshot (see `create_snapshot` function)>
+        }
+    """
+    with db.engine.connect() as connection:
+        result = connection.execute(sqlalchemy.text("""
+            SELECT id, dataset_id, data, created
+              FROM dataset_snapshot
+             WHERE id = :id
+        """), {"id": id})
+        row = result.fetchone()
+        if not row:
+            raise db.exceptions.NoDataFoundException("Can't find dataset snapshot with a specified ID.")
+        return dict(row)
