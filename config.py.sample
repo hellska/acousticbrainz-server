@@ -1,6 +1,4 @@
 DEBUG = False  # set to False in production mode
-# Additional files to watch to restart the development server
-RELOAD_ON_FILES = ["webserver/static/build/rev-manifest.json"]
 
 SECRET_KEY = "CHANGE_ME"
 
@@ -8,7 +6,7 @@ SECRET_KEY = "CHANGE_ME"
 # DATABASES
 
 # Primary database
-SQLALCHEMY_DATABASE_URI = "postgresql://acousticbrainz@/acousticbrainz"
+SQLALCHEMY_DATABASE_URI = "postgresql://acousticbrainz@/acousticbrainz94"
 
 # This connection string will be used for testing
 SQLALCHEMY_TEST_URI = "postgresql://ab_test@/ab_test"
@@ -17,7 +15,7 @@ SQLALCHEMY_TEST_URI = "postgresql://ab_test@/ab_test"
 # be able to connect to the database with this user.
 PG_SUPER_USER = "postgres"
 # The port that postgres is running on
-PG_PORT = "5432"
+PG_PORT = 5432
 
 # MUSICBRAINZ
 

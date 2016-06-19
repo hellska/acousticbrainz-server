@@ -1,12 +1,16 @@
-import db
 from db.testing import DatabaseTestCase
 import unittest
 import db
 from db import dataset, user
+<<<<<<< HEAD
 from utils import dataset_validator
 from sqlalchemy import text
 import uuid
+=======
+import jsonschema
+>>>>>>> parent of 958265e... Merge remote-tracking branch 'upstream/ujson'
 import copy
+
 
 class DatasetTestCase(DatabaseTestCase):
 
@@ -62,16 +66,17 @@ class DatasetTestCase(DatabaseTestCase):
         self.assertEqual(len(ds["classes"][0]["recordings"]), 2)
         self.assertIn("19e698e7-71df-48a9-930e-d4b1a2026c82", ds["classes"][0]["recordings"])
 
+
     def test_create_from_dict_malformed(self):
         bad_dict = copy.deepcopy(self.test_data)
 
         bad_dict["classes"][0]["name"] = None
-        with self.assertRaises(dataset_validator.ValidationException):
-            dataset.create_from_dict(bad_dict, author_id=self.test_user_id)
+        self.assertRaises(jsonschema.ValidationError, dataset.create_from_dict,
+                          dictionary=bad_dict, author_id=self.test_user_id)
 
         bad_dict["classes"][0]["name"] = ""
-        with self.assertRaises(dataset_validator.ValidationException):
-            dataset.create_from_dict(bad_dict, author_id=self.test_user_id)
+        self.assertRaises(jsonschema.ValidationError, dataset.create_from_dict,
+                          dictionary=bad_dict, author_id=self.test_user_id)
 
     def test_update(self):
         id = dataset.create_from_dict(self.test_data, author_id=self.test_user_id)
@@ -93,12 +98,12 @@ class DatasetTestCase(DatabaseTestCase):
         bad_dataset = copy.deepcopy(self.test_data)
 
         bad_dataset["classes"][0]["name"] = None
-        with self.assertRaises(dataset_validator.ValidationException):
-            dataset.update(dataset_id=id, dictionary=bad_dataset, author_id=self.test_user_id)
+        self.assertRaises(jsonschema.ValidationError, dataset.update,
+                          dataset_id=id, dictionary=bad_dataset, author_id=self.test_user_id)
 
         bad_dataset["classes"][0]["name"] = ""
-        with self.assertRaises(dataset_validator.ValidationException):
-            dataset.update(dataset_id=id, dictionary=bad_dataset, author_id=self.test_user_id)
+        self.assertRaises(jsonschema.ValidationError, dataset.update,
+                          dataset_id=id, dictionary=bad_dataset, author_id=self.test_user_id)
 
     def test_get_by_user_id(self):
         dataset.create_from_dict(self.test_data, author_id=self.test_user_id)
@@ -125,6 +130,7 @@ class DatasetTestCase(DatabaseTestCase):
 
         dataset.delete(id)
         self.assertIsNone(dataset.get(id))
+<<<<<<< HEAD
 
     def test_last_edited(self):
         id = dataset.create_from_dict(self.test_data, author_id=self.test_user_id)
@@ -274,3 +280,5 @@ class GetPublicDatasetsTestCase(DatabaseTestCase):
         with self.assertRaises(ValueError):
             datasets = dataset.get_public_datasets("not_a_status")
 
+=======
+>>>>>>> parent of 958265e... Merge remote-tracking branch 'upstream/ujson'

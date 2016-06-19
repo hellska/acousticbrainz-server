@@ -28,17 +28,12 @@
     <table class="table table-striped table-bordered">
       <thead><tr><th style="width: 30%;">Tonal &amp; Rhythm</th><th>value</th></tr></thead>
       <tr>
-        <td><a href="http://essentia.upf.edu/documentation/reference/streaming_Key.html">key</a></td>
-        <td>
-            {{ data.lowlevel.tonal.key_key }} {{ data.lowlevel.tonal.key_scale }}
-            {% if data.lowlevel.tonal.key_strength %}
-                ({{ data.lowlevel.tonal.key_strength|round(2)*100 }}%)
-            {% endif %}
-        </td>
+        <td><a href="http://essentia.upf.edu/documentation/reference/streaming_ChordsDescriptors.html">key</a></td>
+        <td>{{ data.lowlevel.tonal.key_key }}</td>
       </tr>
       <tr>
-        <td><a href="http://essentia.upf.edu/documentation/reference/streaming_ChordsDescriptors.html">chords key</a></td>
-        <td>{{ data.lowlevel.tonal.chords_key }} {{ data.lowlevel.tonal.chords_scale }}</td>
+        <td><a href="http://essentia.upf.edu/documentation/reference/streaming_ChordsDescriptors.html">scale</a></td>
+        <td>{{ data.lowlevel.tonal.chords_scale }}</td>
       </tr>
       <tr>
         <td><a href="http://essentia.upf.edu/documentation/reference/streaming_Danceability.html">danceability</a></td>
@@ -98,12 +93,13 @@
     <ul>
       <li>
         <a href="{{ url_for('data.view_low_level', mbid=metadata['mbid'], n=offset) }}">Low-level</a>
-        (<a href="{{ url_for('api_v1_core.get_low_level', mbid=metadata['mbid'], n=offset) }}">raw JSON</a>)
+        (<a href="{{ url_for('api.get_low_level', mbid=metadata['mbid'], n=offset) }}">raw JSON</a>)
       </li>
       {% if data.highlevel %}
         <li>
+          {# FIXME(roman): Offset might not point to the right high-level data there. #}
           <a href="{{ url_for('data.view_high_level', mbid=metadata['mbid'], n=offset) }}">High-level</a>
-          (<a href="{{ url_for('api_v1_core.get_high_level', mbid=metadata['mbid'], n=offset) }}">raw JSON</a>)
+          (<a href="{{ url_for('api.get_high_level', mbid=metadata['mbid'], n=offset) }}">raw JSON</a>)
         </li>
       {% endif %}
     </ul>

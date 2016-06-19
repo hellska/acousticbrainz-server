@@ -3,37 +3,24 @@ import json
 from hashlib import sha256
 from sqlalchemy import text
 
-VERSION_TYPE_LOWLEVEL = 'lowlevel'
-VERSION_TYPE_HIGHLEVEL = 'highlevel'
-
-version_cache = {}
-
-def insert_version(connection, data, version_type):
+def insert_version(connection, data):
     # TODO: Memoise sha -> id
     norm_data = json.dumps(data, sort_keys=True, separators=(',', ':'))
     sha = sha256(norm_data).hexdigest()
-    if sha in version_cache:
-        return version_cache[sha]
-
-    query = text("""
-            SELECT id
-              FROM version
-             WHERE data_sha256=:data_sha256
-               AND type=:version_type""")
-    result = connection.execute(query, {"data_sha256": sha, "version_type": version_type})
+    result = connection.execute(
+        """SELECT id from version where data_sha256=%s""", (sha, )
+    )
     row = result.fetchone()
     if row:
-        version_cache[sha] = row[0]
         return row[0]
 
     result = connection.execute(
-        text("""INSERT INTO version (data, data_sha256, type)
-        VALUES (:data, :sha, :version_type)
+        text("""INSERT INTO version (data, data_sha256)
+        VALUES (:data, :sha)
         RETURNING id"""),
-        {"data": norm_data, "sha": sha, "version_type": version_type}
+        {"data":norm_data, "sha":sha}
     )
     row = result.fetchone()
-    version_cache[sha] = row[0]
     return row[0]
 
 
@@ -48,7 +35,6 @@ def migrate_low_level(connection, old_ll_row):
     build_sha1 = old_ll_row["ll_build_sha1"]
     data_sha256 = old_ll_row["ll_data_sha256"]
     lossless = old_ll_row["ll_lossless"]
-    submitted = old_ll_row["ll_submitted"]
     data = old_ll_row["ll_data"]
 
     norm_data = json.dumps(data, sort_keys=True, separators=(',', ':'))
@@ -57,12 +43,12 @@ def migrate_low_level(connection, old_ll_row):
     if sha != data_sha256:
         raise Exception("Stored sha should be the same as computed sha, but isn't")
     ll_version = data["metadata"]["version"]
-    version_id = insert_version(connection, ll_version, VERSION_TYPE_LOWLEVEL)
+    version_id = insert_version(connection, ll_version)
 
     connection.execute(
-        "INSERT INTO lowlevel (id, mbid, build_sha1, lossless, submitted)"
-        "VALUES (%s, %s, %s, %s, %s)",
-        (id, mbid, build_sha1, lossless, submitted)
+        "INSERT INTO lowlevel (id, mbid, build_sha1, lossless)"
+        "VALUES (%s, %s, %s, %s)",
+        (id, mbid, build_sha1, lossless)
     )
 
     connection.execute(
@@ -122,7 +108,7 @@ def migrate_high_level(connection, hl_row):
                 VALUES (:id, :data, :data_sha256)""")
     connection.execute(hl_meta, {"id": highlevel_id, "data": meta_norm_data, "data_sha256": sha})
     hl_version = json_meta["version"]["highlevel"]
-    version_id = insert_version(connection, hl_version, VERSION_TYPE_HIGHLEVEL)
+    version_id = insert_version(connection, hl_version)
 
     for name, data in json_high.items():
         item_norm_data = json.dumps(data, sort_keys=True, separators=(',', ':'))

@@ -24,8 +24,7 @@ cli = click.Group()
               help="Turns debugging mode on or off. If specified, overrides "
                    "'DEBUG' value in the config file.")
 def runserver(host, port, debug):
-    create_app().run(host=host, port=port, debug=debug,
-                     extra_files=config.RELOAD_ON_FILES)
+    create_app().run(host=host, port=port, debug=debug)
 
 
 @cli.command()
@@ -56,7 +55,7 @@ def init_db(archive, force):
         raise Exception('Failed to create new database and user! Exit code: %i' % exit_code)
 
     print('Creating database extensions...')
-    exit_code = _run_psql('create_extensions.sql', 'acousticbrainz')
+    exit_code = _run_psql('create_extensions.sql', 'acousticbrainz94')
     if exit_code != 0:
         raise Exception('Failed to create database extensions! Exit code: %i' % exit_code)
 

@@ -60,7 +60,13 @@ function buildStyles(callback) {
         new (require('less-plugin-clean-css'))({compatibility: 'ie8'})
       ]
     }))
+<<<<<<< HEAD
   ).done(callback);
+=======
+  )
+      .done(writeManifest)
+      .fail(function (err) { throw err });
+>>>>>>> parent of 958265e... Merge remote-tracking branch 'upstream/ujson'
 }
 
 function transformBundle(bundle) {
@@ -117,6 +123,7 @@ gulp.task('styles', function () {
 });
 gulp.task('scripts', buildScripts);
 
+<<<<<<< HEAD
 gulp.task('watch', ['styles', 'scripts'], function () {
 
   gulp.watch(path.resolve(STATIC_DIR, '**/*.less'), ['styles']);
@@ -151,6 +158,8 @@ gulp.task('watch', ['styles', 'scripts'], function () {
   });
 });
 
+=======
+>>>>>>> parent of 958265e... Merge remote-tracking branch 'upstream/ujson'
 gulp.task('clean', function () {
   var fileRegex = /^([a-z\-]+)-[a-f0-9]+\.(js|css)$/;
 

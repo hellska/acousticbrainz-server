@@ -3,7 +3,6 @@ from db import dump
 import os.path
 import tempfile
 import shutil
-import unittest
 
 
 class DatabaseDumpTestCase(DatabaseTestCase):
@@ -13,7 +12,7 @@ class DatabaseDumpTestCase(DatabaseTestCase):
         self.temp_dir = tempfile.mkdtemp()
 
     def tearDown(self):
-        super(DatabaseDumpTestCase, self).tearDown()
+        super(DatabaseDumpTestCase, self).setUp()
         shutil.rmtree(self.temp_dir)
 
     def test_dump_db(self):
@@ -29,7 +28,6 @@ class DatabaseDumpTestCase(DatabaseTestCase):
         path = dump.dump_lowlevel_json(self.temp_dir)
         self.assertTrue(os.path.isfile(path))
 
-    @unittest.skip
     def test_dump_highlevel_json(self):
         path = dump.dump_highlevel_json(self.temp_dir)
         self.assertTrue(os.path.isfile(path))

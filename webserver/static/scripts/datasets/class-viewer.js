@@ -6,7 +6,6 @@
  fetches existing dataset from the server.
  */
 var React = require('react');
-var ReactDOM = require('react-dom');
 
 var CONTAINER_ELEMENT_ID = "dataset-class-viewer";
 var container = document.getElementById(CONTAINER_ELEMENT_ID);
@@ -227,20 +226,16 @@ var Recording = React.createClass({
             type: "GET",
             url: "/datasets/recording/" + this.props.mbid,
             success: function (data) {
-                if (this.isMounted()) {
-                    this.setState({
-                        details: data.recording,
-                        status: RECORDING_STATUS_LOADED
-                    });
-                }
+                this.setState({
+                    details: data.recording,
+                    status: RECORDING_STATUS_LOADED
+                });
             }.bind(this),
             error: function () {
-                if (this.isMounted()) {
-                    this.setState({
-                        error: "Recording not found!",
-                        status: RECORDING_STATUS_ERROR
-                    });
-                }
+                this.setState({
+                    error: "Recording not found!",
+                    status: RECORDING_STATUS_ERROR
+                });
             }.bind(this)
         });
     },
@@ -275,4 +270,4 @@ var Recording = React.createClass({
     }
 });
 
-if (container) ReactDOM.render(<Dataset />, container);
+if (container) React.render(<Dataset />, container);

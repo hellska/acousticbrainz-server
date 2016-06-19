@@ -5,7 +5,6 @@
  to be specified on container element.
  */
 var React = require('react');
-var ReactDOM = require('react-dom');
 
 var CONTAINER_ELEMENT_ID = "eval-viewer-container";
 var container = document.getElementById(CONTAINER_ELEMENT_ID);
@@ -24,17 +23,10 @@ var EvaluationJobsViewer = React.createClass({
     getInitialState: function () {
         return {
             active_section: SECTION_JOB_LIST,
-            isAuthorViewing: false,
             jobs: null
         };
     },
     componentDidMount: function() {
-        let user = null;
-        $.get("/user-info", function(data) {
-            user = data.user;
-            console.debug("Received user info:", user);
-        });
-
         // Do not confuse property called "dataset" with our own datasets. See
         // https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/dataset
         // for more info about it.
@@ -45,16 +37,7 @@ var EvaluationJobsViewer = React.createClass({
         }
         $.get("/datasets/" + container.dataset.datasetId + "/evaluation/json", function(data) {
             if (this.isMounted()) {
-                let isAuthorViewing = false;
-                if (user !== null) {
-                    isAuthorViewing = user.id === data.dataset.author.id;
-                }
-                this.setState({
-                    jobs: data.jobs,
-                    isAuthorViewing: isAuthorViewing
-                });
-                console.debug("Received jobs:", data);
-                console.debug("Is author viewing:", isAuthorViewing);
+                this.setState({jobs: data.jobs});
                 this.handleHashChange();
             }
         }.bind(this));
@@ -106,34 +89,13 @@ var EvaluationJobsViewer = React.createClass({
         });
         window.location.hash = "";
     },
-    handleJobDelete: function (jobID, index) {
-        $.ajax({
-            type: "DELETE",
-            url: "/datasets/" + container.dataset.datasetId + "/" + jobID,
-            success: function (data, textStatus, jqXHR) {
-                console.log("Evaluation job " + jobID + " has been removed from the queue.")
-            },
-            error: function (jqXHR, textStatus, errorThrown) {
-                console.error("Error occurred during job deletion:", jqXHR.responseJSON);
-                alert("Failed to remove evaluation job " + jobID +
-                        " from the queue. Reason: " + jqXHR.responseJSON.error);
-            }
-        });
-
-        // Removing job from the list
-        let jobs = this.state.jobs;
-        jobs.splice(index, 1);
-        this.setState({jobs: jobs});
-    },
     render: function () {
         if (this.state.jobs) {
             if (this.state.active_section == SECTION_JOB_LIST) {
                 return (
                     <JobList
                         jobs={this.state.jobs}
-                        showDelete={this.state.isAuthorViewing}
-                        onViewDetails={this.handleViewDetails}
-                        onDelete={this.handleJobDelete} />
+                        onViewDetails={this.handleViewDetails} />
                 );
             } else { // SECTION_JOB_DETAILS
                 var active_job = this.state.jobs[this.state.active_job_index];
@@ -145,8 +107,6 @@ var EvaluationJobsViewer = React.createClass({
                         status={active_job.status}
                         statusMsg={active_job.status_msg}
                         result={active_job.result}
-                        showDelete={this.state.isAuthorViewing}
-                        outdated={active_job.outdated}
                         onReturn={this.handleReturn} />
                 );
             }
@@ -162,9 +122,7 @@ var EvaluationJobsViewer = React.createClass({
 var JobList = React.createClass({
     propTypes: {
         jobs: React.PropTypes.array.isRequired,
-        showDelete: React.PropTypes.bool.isRequired,
-        onViewDetails: React.PropTypes.func.isRequired,
-        onDelete: React.PropTypes.func.isRequired
+        onViewDetails: React.PropTypes.func.isRequired
     },
     render: function () {
         if (this.props.jobs.length > 0) {
@@ -176,20 +134,16 @@ var JobList = React.createClass({
                         id={cls.id}
                         created={cls.created}
                         status={cls.status}
-                        outdated={cls.outdated}
-                        showDelete={this.props.showDelete}
-                        onViewDetails={this.props.onViewDetails}
-                        onDelete={this.props.onDelete} />
+                        onViewDetails={this.props.onViewDetails} />
                 );
             }.bind(this));
             return (
                 <table className="table table-hover job-list">
                     <thead>
                     <tr>
-                        <th className="id">Job ID</th>
-                        <th className="status">Status</th>
-                        <th className="created">Creation time</th>
-                        <th className="controls"></th>
+                        <th>Job ID</th>
+                        <th>Status</th>
+                        <th>Creation time</th>
                     </tr>
                     </thead>
                     <tbody>{items}</tbody>
@@ -211,17 +165,11 @@ var JobRow = React.createClass({
         id: React.PropTypes.string.isRequired,
         created: React.PropTypes.string.isRequired,
         status: React.PropTypes.string.isRequired,
-        outdated: React.PropTypes.string.isRequired,
-        showDelete: React.PropTypes.bool.isRequired,
-        onViewDetails: React.PropTypes.func.isRequired,
-        onDelete: React.PropTypes.func.isRequired
+        onViewDetails: React.PropTypes.func.isRequired
     },
     handleViewDetails: function (event) {
         event.preventDefault();
         this.props.onViewDetails(this.props.index);
-    },
-    handleDelete: function () {
-        this.props.onDelete(this.props.id, this.props.index);
     },
     render: function () {
         var status = "";
@@ -236,64 +184,16 @@ var JobRow = React.createClass({
                 status = <span className="label label-danger">Failed</span>;
                 break;
             case JOB_STATUS_DONE:
-                if (this.props.outdated) {
-                    status = <span className="label label-primary">Done, Outdated</span>;
-                } else {
-                    status = <span className="label label-success">Done</span>;
-                }
+                status = <span className="label label-success">Done</span>;
                 break;
-        }
-        let controls = "";
-        if (this.props.showDelete) {
-            if (this.props.status === JOB_STATUS_PENDING) {
-                controls = <JobDeleteButton onDelete={this.handleDelete} />;
-            }
         }
         return (
             <tr className="job">
                 <td className="id"><a href="#" onClick={this.handleViewDetails}>{this.props.id}</a></td>
                 <td className="status">{status}</td>
-                <td className="created"><span>{this.props.created}</span></td>
-                <td className="controls">{controls}</td>
+                <td className="created">{this.props.created}</td>
             </tr>
         );
-    }
-});
-
-
-let JobDeleteButton = React.createClass({
-    propTypes: {
-        onDelete: React.PropTypes.func.isRequired
-    },
-    getInitialState: function () {
-        return {showConfirmation: false};
-    },
-    delete: function (event) {
-        event.preventDefault();
-        this.props.onDelete();
-    },
-    confirm: function (event) {
-        event.preventDefault();
-        this.setState({showConfirmation: true});
-    },
-    cancel: function (event) {
-        event.preventDefault();
-        this.setState({showConfirmation: false});
-    },
-    render: function () {
-        if (!this.state.showConfirmation) {
-            return <a href="#" className="btn btn-danger btn-xs"
-                      title="Delete this evaluation job"
-                      onClick={this.confirm}>Delete</a>;
-        } else {
-            return <div>
-                <em>Are you sure?&nbsp;&nbsp;</em>
-                <a href="#" className="btn btn-danger btn-xs"
-                   onClick={this.delete}>Delete</a>
-                <a href="#" className="btn btn-default btn-xs"
-                   onClick={this.cancel}>Cancel</a>
-            </div>;
-        }
     }
 });
 
@@ -306,7 +206,6 @@ var JobDetails = React.createClass({
         created: React.PropTypes.string.isRequired,
         updated: React.PropTypes.string.isRequired,
         status: React.PropTypes.string.isRequired,
-        outdated: React.PropTypes.string.isRequired,
         statusMsg: React.PropTypes.string,
         result: React.PropTypes.object,
         onReturn: React.PropTypes.func.isRequired
@@ -338,16 +237,10 @@ var JobDetails = React.createClass({
                 </div>;
                 break;
             case JOB_STATUS_DONE:
-                if (this.props.outdated) {
-                    status = <div className="alert alert-success">
-                        The dataset has been changed since this job was run, so the results may be out of date.
-                    </div>;
-                } else {
-		    status = <div className="alert alert-success">
-                        This evaluation job has been completed on {this.props.updated}.
-                        You can find results below.
-                    </div>;
-                }
+                status = <div className="alert alert-success">
+                    This evaluation job has been completed on {this.props.updated}.
+                    You can find results below.
+                </div>;
                 break;
         }
         var header = <div>
@@ -439,4 +332,4 @@ var Results = React.createClass({
 });
 
 
-if (container) ReactDOM.render(<EvaluationJobsViewer />, container);
+if (container) React.render(<EvaluationJobsViewer />, container);

@@ -58,7 +58,21 @@ def create_app():
     app.jinja_env.filters['datetime'] = utils.reformat_datetime
     app.context_processor(lambda: dict(get_static_path=static_manager.get_static_path))
 
-    _register_blueprints(app)
+    # Blueprints
+    from webserver.views.index import index_bp
+    from webserver.views.data import data_bp
+    from webserver.views.api import api_bp
+    from webserver.views.stats import stats_bp
+    from webserver.views.login import login_bp
+    from webserver.views.user import user_bp
+    from webserver.views.datasets import datasets_bp
+    app.register_blueprint(index_bp)
+    app.register_blueprint(data_bp)
+    app.register_blueprint(api_bp)
+    app.register_blueprint(stats_bp)
+    app.register_blueprint(login_bp, url_prefix='/login')
+    app.register_blueprint(user_bp, url_prefix='/user')
+    app.register_blueprint(datasets_bp, url_prefix='/datasets')
 
     # Admin section
     from flask_admin import Admin
@@ -67,42 +81,3 @@ def create_app():
     admin.add_view(admin_views.AdminsView(name='Admins'))
 
     return app
-
-
-def create_app_sphinx():
-    """Creates application for generating the documentation using Sphinx.
-
-    Read the Docs builder doesn't have a database or any other custom software
-    that we use, so we have to ignore these initialization steps. Only
-    blueprints/views are needed to build documentation.
-    """
-    app = Flask(__name__)
-    _register_blueprints(app)
-    return app
-
-
-def _register_blueprints(app):
-
-    def register_ui(app):
-        from webserver.views.index import index_bp
-        from webserver.views.data import data_bp
-        from webserver.views.stats import stats_bp
-        from webserver.views.login import login_bp
-        from webserver.views.user import user_bp
-        from webserver.views.datasets import datasets_bp
-        app.register_blueprint(index_bp)
-        app.register_blueprint(data_bp)
-        app.register_blueprint(stats_bp)
-        app.register_blueprint(login_bp, url_prefix='/login')
-        app.register_blueprint(user_bp)
-        app.register_blueprint(datasets_bp, url_prefix='/datasets')
-
-    def register_api(app):
-        from webserver.views.api.v1.core import bp_core
-        app.register_blueprint(bp_core, url_prefix='/api/v1')
-
-        from webserver.views.api.legacy import api_legacy_bp
-        app.register_blueprint(api_legacy_bp)
-
-    register_ui(app)
-    register_api(app)
